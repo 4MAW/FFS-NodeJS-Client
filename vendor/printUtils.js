@@ -79,9 +79,16 @@ function print_battle_scenario( environment )
 
 }
 
+function print_skills( character )
+{
+	for ( var _i in character.class.skills )
+	{
+		console.log( "\t Skill " + _i + ": " + character.class.skills[ _i ].name );
+	}
+}
+
 module.exports = {
-
 	printTeamList: print_team_list,
-	printBattleScenario: print_battle_scenario
-
+	printBattleScenario: print_battle_scenario,
+	printSkills: print_skills
 };
