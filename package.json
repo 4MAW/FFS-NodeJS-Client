@@ -1,0 +1,25 @@
+{
+	"author": "",
+	"dependencies":
+	{
+		"colors": "~0.6.2",
+		"q": "~1.0.0",
+		"request": "~2.12.0",
+		"socket.io-client": "~0.9.16"
+	},
+	"description": "Final Fantasy Showdown NodeJS Client",
+	"engines":
+	{
+		"node": "0.10.x"
+	},
+	"scripts":
+	{
+		"debug": "node debug app.js",
+		"start": "node app.js"
+	},
+	"license": "",
+	"name": "ffsnodejsclient",
+	"private": true,
+	"repository": "",
+	"version": "0.0.0"
+}
