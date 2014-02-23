@@ -160,8 +160,8 @@ socket.on( 'match_ready', function ( rival )
 	} );
 } );
 
-// Match starts.
-defers.startMatch.promise.then( function ()
+// Decision phase function.
+var decision_phase = function ()
 {
 
 	pu.printBattleScenario(
@@ -170,4 +170,67 @@ defers.startMatch.promise.then( function ()
 		he: he
 	} );
 
+	var selections = [];
+
+	var process_selection = function ( _c, defer )
+	{
+		return function ( answer )
+		{
+			selections[ _c ] = {
+				id: me.team.characters[ _c ].class.skills[ answer ].id
+			};
+			defer.resolve();
+		};
+	}
+
+	var selection_promises = [];
+
+	for ( var _c in me.team.characters )
+	{
+		var c = me.team.characters[ _c ];
+		if ( c.alive === undefined ||  c.alive )
+		{
+			c.alive = true;
+
+			log.info( 'What should ' + c.name + ' do?', 'CHARACTER' );
+
+			log.input( 'Choose a skill from the list:', 'SKILL' );
+			pu.printSkills( c );
+
+			var rl = readline.createInterface(
+			{
+				input: process.stdin,
+				output: process.stdout
+			} );
+
+			var _defer = Q.defer();
+			selection_promises.push( _defer.promise );
+			rl.question( 'Skill to do: '.yellow, process_selection( _c, _defer ) );
+		}
+		else continue;
+	}
+
+	Q.all( selection_promises ).then( function ()
+	{
+		log.info( 'Wait for the other player...', 'WAIT' );
+		socket.emit( 'decisions', selections );
+	} );
+};
+
+// Match starts.
+defers.startMatch.promise.then( decision_phase );
+
+socket.on( 'decisions', function ( decisions )
+{
+	log.warn( 'The other player decided: ', 'BATTLE' );
+
+	api.loadSkills( decisions ).then( function ()
+	{
+		for ( var _d in decisions )
+		{
+			log.status( 'Used ' + decisions[ _d ].name + '!', he.team.characters[ _d ].name );
+		}
+
+		decision_phase();
+	} );
 } );
