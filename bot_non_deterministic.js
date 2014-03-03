@@ -234,7 +234,7 @@ var decision_phase = function ()
 
 			if ( behaviour === 0 && r * alive > 0.5 ) behaviour = 1;
 			else if ( behaviour === 0 ) behaviour = 2;
-			else if ( alive > 2 ) behaviour = 3;
+			else if ( alive > 2 ) behaviour = ( r > 0.5 ) ? 3 : 0;
 			else behaviour = 0;
 
 			switch ( behaviour )
