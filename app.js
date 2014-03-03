@@ -208,7 +208,7 @@ socket.on( Constants.SEND_RIVAL_INFO_EVENT, function ( environment )
 
 	Q.all( promises ).then( function ()
 	{
-		decision_phase();
+		// Client should wait for complete initialization.
 	} );
 } );
 
@@ -223,13 +223,6 @@ var decision_phase = function ()
 	} );
 
 	var selections = [];
-
-	var process_selection = function ( _c, defer )
-	{
-		return function ( answer ) {
-
-		};
-	};
 
 	var selection_promises = [];
 
@@ -258,8 +251,9 @@ var decision_phase = function ()
 					rl.close();
 
 					selections[ _c ] = {
+						character: me.team.characters[ _c ].id,
 						skill: me.team.characters[ _c ].class.skills[ answer ].id,
-						target: null
+						targets: []
 					};
 
 					rl = readline.createInterface(
@@ -268,19 +262,29 @@ var decision_phase = function ()
 						output: process.stdout
 					} );
 
-					rl.question( 'Target: '.yellow, function ( answer )
+					if ( !me.team.characters[ _c ].class.skills[ answer ].multiTarget )
 					{
+						log.input( 'Choose a target from the list:', 'SKILL' );
 
 						for ( var _i in he.team.characters )
 							console.log( '\tCharacter ' + _i + ': ' + he.team.characters[ _i ].name );
 
-						selections[ _c ].target = {
-							player: Constants.PLAYER_RIVAL,
-							character: answer
-						};
+						rl.question( 'Target: '.yellow, function ( answer )
+						{
+							selections[ _c ].targets.push( he.team.characters[ answer ].id );
+
+							rl.close();
+							def.resolve();
+						} );
+					}
+					else
+					{
+						for ( var _i in he.team.characters )
+							selections[ _c ].targets.push( he.team.characters[ _i ].id );
 						rl.close();
 						def.resolve();
-					} );
+					}
+
 				} );
 
 			}
@@ -324,20 +328,41 @@ socket.on( Constants.DECISIONS_PHASE_END_EVENT, function ()
 
 socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
 {
-	for ( var i in decisions.actions )
+
+	for ( var i in decisions )
 	{
-		var target = {};
-		if ( decisions.players[ i ] === Constants.PLAYER_RIVAL && decisions.actions[ i ].target.player === Constants.PLAYER_RIVAL || decisions.players[ i ] === Constants.PLAYER_SELF && decisions.actions[ i ].target.player === Constants.PLAYER_SELF )
-			target = me.team.characters[ decisions.actions[ i ].target.character ];
-		else
-			target = he.team.characters[ decisions.actions[ i ].target.character ];
+		var d = decisions[ i ];
+		var changes = d.changes;
 
-		if ( decisions.players[ i ] === Constants.PLAYER_RIVAL )
-			log.status( he.name + ' ordered ' + decisions.characters[ i ].name + ' to use ' + decisions.actions[ i ].skill + ' against ' + target.name + ', dealing ' + decisions.actions[ i ].damage + ' damage points', 'BATTLE' );
-		else
-			log.status( 'Your minion ' + decisions.characters[ i ].name + ' used ' + decisions.actions[ i ].skill + ' against ' + target.name + ', dealing ' + decisions.actions[ i ].damage + ' damage points', 'BATTLE' );
+		for ( var c in changes )
+		{
+			var change = changes[ c ];
 
-		target.stats[ Constants.HEALTH_STAT_ID ] -= decisions.actions[ i ].damage;
+			var player_affected = he;
+			for ( var j in me.team.characters )
+				if ( me.team.characters[ j ].id === change.character.id ) player_affected = me;
+
+			for ( j in player_affected.team.characters )
+			{
+
+				if ( player_affected.team.characters[ j ].id === change.character.id )
+				{
+					if ( change.item.key === "stat" )
+					{
+						player_affected.team.characters[ j ].stats[ change.item.value ] += parseInt( change.change );
+						log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', dealing ' + change.change + ' damage points', 'BATTLE' );
+					}
+					else if ( change.item.key === "status" )
+					{
+						if ( change.change === "+" )
+							log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', ' + change.item.value + 'ing him', 'BATTLE' );
+						else
+							log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', healing his ' + change.item.value + 'ing', 'BATTLE' );
+					}
+					break;
+				}
+			}
+		}
 	}
 
 } );
