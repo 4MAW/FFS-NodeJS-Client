@@ -342,6 +342,8 @@ socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
 			for ( var j in me.team.characters )
 				if ( me.team.characters[ j ].id === change.character.id ) player_affected = me;
 
+			var player_user = ( player_affected === he ) ? me : he;
+
 			for ( j in player_affected.team.characters )
 			{
 
@@ -350,14 +352,14 @@ socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
 					if ( change.item.key === "stat" )
 					{
 						player_affected.team.characters[ j ].stats[ change.item.value ] += parseInt( change.change );
-						log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', dealing ' + change.change + ' damage points', 'BATTLE' );
+						log.status( player_user.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', dealing ' + change.change + ' damage points', 'BATTLE' );
 					}
 					else if ( change.item.key === "status" )
 					{
 						if ( change.change === "+" )
-							log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', ' + change.item.value + 'ing him', 'BATTLE' );
+							log.status( player_user.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', ' + change.item.value + 'ing him', 'BATTLE' );
 						else
-							log.status( player_affected.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', healing his ' + change.item.value + 'ing', 'BATTLE' );
+							log.status( player_user.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', healing his ' + change.item.value + 'ing', 'BATTLE' );
 					}
 					break;
 				}
