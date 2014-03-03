@@ -79,8 +79,8 @@ var login = function ()
 
 	log.input( 'Logging in...', 'LOGIN' );
 
-	username = "demo";
-	password = "demo";
+	username = "Lluís";
+	password = "yolo";
 
 	me.name = username;
 
@@ -101,9 +101,9 @@ var choose_team = function ()
 		var teams = JSON.parse( res.body );
 		api.loadTeams( teams ).then( function ()
 		{
-			me.team = teams[ 1 ];
+			me.team = teams[ 0 ];
 			socket.emit( Constants.CHOOSE_TEAM_EVENT, me.team.id );
-			log.info( "Chosen team 1", "TEAM" );
+			log.info( "Chosen team 0", "TEAM" );
 		} ); // All characters ready.
 	} ); // Teams request.
 };
@@ -188,66 +188,99 @@ var decision_phase = function ()
 
 	var questions_to_ask = [];
 
-	var counter = 0;
+	var behaviour = 0;
 
 	var ask_selection_question = function ( _c )
 	{
-
-		var minimum, maximum, alive = 0;
-		for ( var j in he.team.characters )
-		{
-			if ( he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] > 0 ) alive++;
-			if ( minimum === undefined )
-			{
-				minimum = {
-					character: he.team.characters[ j ],
-					value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
-				};
-			}
-			if ( ( minimum.value <= 0 || minimum.value > he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] ) && he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] > 0 )
-			{
-				minimum = {
-					character: he.team.characters[ j ],
-					value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
-				};
-			}
-			if ( maximum === undefined )
-			{
-				maximum = {
-					character: he.team.characters[ j ],
-					value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
-				};
-			}
-			if ( maximum.value > he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] )
-			{
-				maximum = {
-					character: he.team.characters[ j ],
-					value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
-				};
-			}
-		}
-
 		var c = me.team.characters[ _c ];
 		if ( c.alive )
 		{
-			switch ( counter )
+
+			var minimum, maximum, alive = 0;
+			for ( var j in he.team.characters )
 			{
-			case 0:
+				if ( he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] > 0 ) alive++;
+				if ( minimum === undefined )
+				{
+					minimum = {
+						character: he.team.characters[ j ],
+						value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
+					};
+				}
+				if ( ( minimum.value <= 0 || minimum.value > he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] ) && he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] > 0 )
+				{
+					minimum = {
+						character: he.team.characters[ j ],
+						value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
+					};
+				}
+				if ( maximum === undefined )
+				{
+					maximum = {
+						character: he.team.characters[ j ],
+						value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
+					};
+				}
+				if ( maximum.value > he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ] )
+				{
+					maximum = {
+						character: he.team.characters[ j ],
+						value: he.team.characters[ j ].stats[ Constants.HEALTH_STAT_ID ]
+					};
+				}
+			}
+
+			var r = Math.random();
+
+			if ( behaviour === 0 && r * alive > 0.5 ) behaviour = 1;
+			else if ( behaviour === 0 ) behaviour = 2;
+			else if ( alive > 2 ) behaviour = 3;
+			else behaviour = 0;
+
+			switch ( behaviour )
+			{
+			case 1:
+
 				log.info( c.name + ' will paralyze', 'CHARACTER' );
 				selections[ _c ] = {
 					character: me.team.characters[ _c ].id,
 					skill: me.team.characters[ _c ].class.skills[ 5 ].id,
-					targets: [ minimum.character.id ]
+					targets: [ maximum.character.id ]
 				};
 				break;
-			case 1:
-				log.info( c.name + ' will paralyze', 'CHARACTER' );
+
+			case 2:
+
+				log.info( c.name + ' will poison', 'CHARACTER' );
 				selections[ _c ] = {
 					character: me.team.characters[ _c ].id,
 					skill: me.team.characters[ _c ].class.skills[ 1 ].id,
-					targets: [ minimum.character.id ]
+					targets: [ maximum.character.id ]
 				};
 				break;
+
+			case 3:
+
+				log.info( c.name + ' will use nova', 'CHARACTER' );
+				selections[ _c ] = {
+					character: me.team.characters[ _c ].id,
+					skill: me.team.characters[ _c ].class.skills[ 4 ].id,
+					targets: []
+				};
+				for ( var _i in he.team.characters )
+					selections[ _c ].targets.push( he.team.characters[ _i ].id );
+				break;
+
+			case 4:
+
+				log.info( c.name + ' will use esuna', 'CHARACTER' );
+				selections[ _c ] = {
+					character: me.team.characters[ _c ].id,
+					skill: me.team.characters[ _c ].class.skills[ 2 ].id,
+					targets: [ me.team.characters[ _c ].id ]
+				};
+				break;
+
 			default:
 				log.info( c.name + ' will attack', 'CHARACTER' );
 				selections[ _c ] = {
@@ -258,7 +291,7 @@ var decision_phase = function ()
 				break;
 			}
 		}
-		counter++;
+
 	};
 
 	for ( var _c in me.team.characters )

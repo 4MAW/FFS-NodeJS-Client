@@ -262,11 +262,13 @@ var decision_phase = function ()
 						output: process.stdout
 					} );
 
+					var _i;
+
 					if ( !me.team.characters[ _c ].class.skills[ answer ].multiTarget )
 					{
 						log.input( 'Choose a target from the list:', 'SKILL' );
 
-						for ( var _i in he.team.characters )
+						for ( _i in he.team.characters )
 							console.log( '\tCharacter ' + _i + ': ' + he.team.characters[ _i ].name );
 
 						rl.question( 'Target: '.yellow, function ( answer )
@@ -279,7 +281,7 @@ var decision_phase = function ()
 					}
 					else
 					{
-						for ( var _i in he.team.characters )
+						for ( _i in he.team.characters )
 							selections[ _c ].targets.push( he.team.characters[ _i ].id );
 						rl.close();
 						def.resolve();
