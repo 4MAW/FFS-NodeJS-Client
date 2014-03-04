@@ -1,4 +1,4 @@
 module.exports = {
-	baseURL: "http://localhost",
-	port: 8002
+	baseURL: "http://vast-cliffs-7189.herokuapp.com",
+	port: 80
 };

@@ -1,0 +1,1 @@
+web: node bot_random.js
