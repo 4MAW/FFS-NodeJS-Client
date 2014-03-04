@@ -17,13 +17,6 @@ process.on( 'SIGINT', function ()
 	process.exit( -1 );
 } );
 
-/*
-process.on( 'exit', function ()
-{
-	socket.disconnect();
-} );
-*/
-
 // Defers.
 
 var defers = {
@@ -39,6 +32,7 @@ var defers = {
 var critical_error = function ( error, area )
 {
 	log.error( error, area );
+	//setTimeout( start, 5000 );
 	process.exit( -1 );
 };
 
@@ -79,8 +73,8 @@ var login = function ()
 
 	log.input( 'Logging in...', 'LOGIN' );
 
-	username = process.env.SERVER_USERNAME || "demo";
-	password = process.env.SERVER_PASSWORD || "demo";
+	username = process.argv[ 2 ] || "demo";
+	password = process.argv[ 3 ] || "demo";
 
 	me.name = username;
 
@@ -101,7 +95,7 @@ var choose_team = function ()
 		var teams = JSON.parse( res.body );
 		api.loadTeams( teams ).then( function ()
 		{
-			me.team = teams[ process.env.SERVER_TEAM || 1 ];
+			me.team = teams[ process.argv[ 4 ] || 1 ];
 			socket.emit( Constants.CHOOSE_TEAM_EVENT, me.team.id );
 			log.info( "Chosen team " + me.team.id, "TEAM" );
 		} ); // All characters ready.
