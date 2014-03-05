@@ -91,17 +91,17 @@ var login = function ()
 	} );
 };
 
-var choose_team = function ()
+var choose_team = function ( id )
 {
 	// @TODO Query teams for current user.
 	// @TODO Request the list of teams only once.
-	request( baseURL + '/team', function ( err, res )
+	request( baseURL + '/player/' + id + '/teams', function ( err, res )
 	{
 		if ( err ) critical_error( err );
 		var teams = JSON.parse( res.body );
 		api.loadTeams( teams ).then( function ()
 		{
-			me.team = teams[ 0 ];
+			me.team = teams[ Math.floor( Math.random() * teams.length ) ];
 			socket.emit( Constants.CHOOSE_TEAM_EVENT, me.team.id );
 			log.info( "Chosen team 0", "TEAM" );
 		} ); // All characters ready.
@@ -120,10 +120,10 @@ socket.on( Constants.LOGIN_FAILED_EVENT, function ()
 	process.exit( -1 );
 } );
 
-socket.on( Constants.LOGIN_SUCCEED_EVENT, function ()
+socket.on( Constants.LOGIN_SUCCEED_EVENT, function ( data )
 {
 	log.success( 'Logged in!', 'LOGIN' );
-	choose_team();
+	choose_team( data.id );
 } );
 
 socket.on( Constants.INVALID_TEAM_EVENT, function ()
