@@ -12,8 +12,7 @@ var request = require( 'request' ),
 
 // Exit handlers.
 
-process.on( 'SIGINT', function ()
-{
+process.on( 'SIGINT', function () {
 	process.exit( -1 );
 } );
 
@@ -36,8 +35,7 @@ var defers = {
 
 // Functions.
 
-var critical_error = function ( error, area )
-{
+var critical_error = function ( error, area ) {
 	log.error( error, area );
 	process.exit( -1 );
 };
@@ -64,13 +62,11 @@ var currently_in_decision_phase = false;
 
 var socket = io.connect( baseURL );
 
-socket.on( 'disconnect', function ( data )
-{
+socket.on( 'disconnect', function ( data ) {
 	critical_error( data, 'DISCONNECT' );
 } );
 
-var login = function ()
-{
+var login = function () {
 	var defer_username = Q.defer();
 	var defer_password = Q.defer();
 
@@ -79,69 +75,57 @@ var login = function ()
 
 	log.input( 'You have to login to play', 'LOGIN' );
 
-	var rl = readline.createInterface(
-	{
+	var rl = readline.createInterface( {
 		input: process.stdin,
 		output: process.stdout
 	} );
 
-	rl.question( "Write your username: ".yellow, function ( answer )
-	{
+	rl.question( "Write your username: ".yellow, function ( answer ) {
 		username = answer;
 		me.name = username;
 		rl.close();
 		defer_username.resolve();
 	} );
 
-	defer_username.promise.then( function ()
-	{
-		var rl = readline.createInterface(
-		{
+	defer_username.promise.then( function () {
+		var rl = readline.createInterface( {
 			input: process.stdin,
 			output: process.stdout
 		} );
 
-		rl.question( "Write your password: ".yellow, function ( answer )
-		{
+		rl.question( "Write your password: ".yellow, function ( answer ) {
 			password = answer;
 			rl.close();
 			defer_password.resolve();
 		} );
 	} );
 
-	defer_password.promise.then( function ()
-	{
-		socket.emit( Constants.LOGIN_EVENT,
-		{
+	defer_password.promise.then( function () {
+		socket.emit( Constants.LOGIN_EVENT, {
 			username: username,
 			password: password
 		} );
 	} );
 };
 
-var choose_team = function ( id )
-{
+var choose_team = function ( id ) {
 	// @TODO Query teams for current user.
 	// @TODO Request the list of teams only once.
-	request( baseURL + '/player/' + id + '/teams', function ( err, res )
-	{
+	request( baseURL + '/player/' + id + '/teams', function ( err, res ) {
 		if ( err ) critical_error( err );
 		var teams = JSON.parse( res.body );
-		api.loadTeams( teams ).then( function ()
-		{
+		api.loadTeams( teams ).then( function () {
 			log.input( 'Choose a team from the list:', 'TEAM' );
 			console.log( '-----------------------------------' );
 			pu.printTeamList( teams );
 			console.log( '-----------------------------------' );
 
-			var rl = readline.createInterface(
-			{
+			var rl = readline.createInterface( {
 				input: process.stdin,
 				output: process.stdout
 			} );
 
-			rl.question( 'Team number: '.yellow, function ( answer )
-			{
+			rl.question( 'Team number: '.yellow, function ( answer ) {
 				me.team = teams[ answer ];
 				rl.close();
 				socket.emit( Constants.CHOOSE_TEAM_EVENT, me.team.id );
@@ -150,74 +134,61 @@ var choose_team = function ( id )
 	} ); // Teams request.
 };
 
-socket.on( Constants.WELCOME_EVENT, function ()
-{
+socket.on( Constants.WELCOME_EVENT, function () {
 	// I'm connected to server so I have to login.
 	login();
 } );
 
-socket.on( Constants.LOGIN_FAILED_EVENT, function ()
-{
+socket.on( Constants.LOGIN_FAILED_EVENT, function () {
 	// I my login failed, login again.
 	login();
 } );
 
-socket.on( Constants.LOGIN_SUCCEED_EVENT, function ( data )
-{
+socket.on( Constants.LOGIN_SUCCEED_EVENT, function ( data ) {
 	choose_team( data.id );
 } );
 
-socket.on( Constants.INVALID_TEAM_EVENT, function ()
-{
+socket.on( Constants.INVALID_TEAM_EVENT, function () {
 	choose_team();
 } );
 
-socket.on( Constants.VALID_TEAM_EVENT, function ()
-{
+socket.on( Constants.VALID_TEAM_EVENT, function () {
 	log.info( 'Server is looking for a proper rival...', 'WAIT' );
 } );
 
-socket.on( Constants.MATCH_FOUND_EVENT, function ()
-{
+socket.on( Constants.MATCH_FOUND_EVENT, function () {
 	log.info( 'A rival has been found!', 'WAIT' );
 } );
 
-socket.on( Constants.SEND_RIVAL_INFO_EVENT, function ( environment )
-{
+socket.on( Constants.SEND_RIVAL_INFO_EVENT, function ( environment ) {
 	var rival = environment.rival;
 	he.name = rival.name;
 	he.team = rival.team;
 	me.team = environment.team;
 
-	var assign_class = function ( _c )
-	{
-		return function ( _class )
-		{
+	var assign_class = function ( _c ) {
+		return function ( _class ) {
 			me.team.characters[ _c ].class = _class;
 		};
 	};
 
 	var promises = [];
-	for ( var _c in me.team.characters )
-	{
+	for ( var _c in me.team.characters ) {
 		var defer = Q.defer();
 		defer.promise.then( assign_class( _c ) );
 		promises.push( defer.promise );
 		api.loadClass( me.team.characters[ _c ].class ).then( defer.resolve );
 	}
 
-	Q.all( promises ).then( function ()
-	{
+	Q.all( promises ).then( function () {
 		// Client should wait for complete initialization.
 	} );
 } );
 
-var decision_phase = function ()
-{
+var decision_phase = function () {
 	currently_in_decision_phase = true;
 
-	pu.printBattleScenario(
-	{
+	pu.printBattleScenario( {
 		me: me,
 		he: he
 	} );
@@ -228,26 +199,21 @@ var decision_phase = function ()
 
 	var questions_to_ask = [];
 
-	var ask_selection_question = function ( _c, def )
-	{
-		return function ()
-		{
+	var ask_selection_question = function ( _c, def ) {
+		return function () {
 			var c = me.team.characters[ _c ];
-			if ( c.alive )
-			{
+			if ( c.alive ) {
 				log.info( 'What should ' + c.name + ' do?', 'CHARACTER' );
 
 				log.input( 'Choose a skill from the list:', 'SKILL' );
 				pu.printSkills( c );
 
-				var rl = readline.createInterface(
-				{
+				var rl = readline.createInterface( {
 					input: process.stdin,
 					output: process.stdout
 				} );
 
-				rl.question( 'Skill to do: '.yellow, function ( answer )
-				{
+				rl.question( 'Skill to do: '.yellow, function ( answer ) {
 					rl.close();
 
 					selections[ _c ] = {
@@ -256,35 +222,54 @@ var decision_phase = function ()
 						targets: []
 					};
 
-					rl = readline.createInterface(
-					{
+					rl = readline.createInterface( {
 						input: process.stdin,
 						output: process.stdout
 					} );
 
 					var _i;
 
-					if ( !me.team.characters[ _c ].class.skills[ answer ].multiTarget )
-					{
+					if ( me.team.characters[ _c ].class.skills[ answer ].multiTarget !== "2" ) {
 						log.input( 'Choose a target from the list:', 'SKILL' );
 
 						for ( _i in he.team.characters )
 							console.log( '\tCharacter ' + _i + ': ' + he.team.characters[ _i ].name );
 
-						rl.question( 'Target: '.yellow, function ( answer )
-						{
+						rl.question( 'Target: '.yellow, function ( answer ) {
 							selections[ _c ].targets.push( he.team.characters[ answer ].id );
 
 							rl.close();
 							def.resolve();
 						} );
-					}
-					else
-					{
+					} else {
+						log.input( 'Choose a target from the list:', 'SKILL' );
+
 						for ( _i in he.team.characters )
-							selections[ _c ].targets.push( he.team.characters[ _i ].id );
-						rl.close();
-						def.resolve();
+							console.log( '\tCharacter ' + _i + ': ' + he.team.characters[ _i ].name );
+
+						rl.question( 'Target: '.yellow, function ( answer ) {
+							selections[ _c ].targets.push( he.team.characters[ answer ].id );
+
+							rl.close();
+
+							rl = readline.createInterface( {
+								input: process.stdin,
+								output: process.stdout
+							} );
+
+							log.input( 'Choose a target from the list:', 'SKILL' );
+
+							for ( _i in he.team.characters )
+								console.log( '\tCharacter ' + _i + ': ' + he.team.characters[ _i ].name );
+
+							rl.question( 'Target: '.yellow, function ( answer ) {
+								selections[ _c ].targets.push( he.team.characters[ answer ].id );
+
+								rl.close();
+								def.resolve();
+							} );
+
+						} );
 					}
 
 				} );
@@ -295,11 +280,9 @@ var decision_phase = function ()
 
 	var last_defer = Q.defer();
 	var last_promise = last_defer.promise;
-	for ( var _c in me.team.characters )
-	{
+	for ( var _c in me.team.characters ) {
 		var c = me.team.characters[ _c ];
-		if ( c.alive )
-		{
+		if ( c.alive ) {
 			var def = Q.defer();
 			last_promise.then( ask_selection_question( _c, def ) );
 			last_promise = def.promise;
@@ -307,37 +290,29 @@ var decision_phase = function ()
 	}
 
 	last_defer.resolve();
-	last_promise.then( function ()
-	{
-		if ( currently_in_decision_phase )
-		{
+	last_promise.then( function () {
+		if ( currently_in_decision_phase ) {
 			currently_in_decision_phase = false;
 			log.info( 'Wait for the other player...', 'WAIT' );
 			socket.emit( Constants.DECISION_MADE_EVENT, selections );
-		}
-		else
-		{
+		} else {
 			log.warn( 'A timeout happened!' );
 		}
 	} );
 };
 
-socket.on( Constants.DECISIONS_PHASE_END_EVENT, function ()
-{
+socket.on( Constants.DECISIONS_PHASE_END_EVENT, function () {
 	currently_in_decision_phase = false;
 	log.info( 'Decisions phase ended!' );
 } );
 
-socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
-{
+socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions ) {
 
-	for ( var i in decisions )
-	{
+	for ( var i in decisions ) {
 		var d = decisions[ i ];
 		var changes = d.changes;
 
-		for ( var c in changes )
-		{
+		for ( var c in changes ) {
 			var change = changes[ c ];
 
 			var player_affected = he;
@@ -346,18 +321,13 @@ socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
 
 			var player_user = ( player_affected === he ) ? me : he;
 
-			for ( j in player_affected.team.characters )
-			{
+			for ( j in player_affected.team.characters ) {
 
-				if ( player_affected.team.characters[ j ].id === change.character.id )
-				{
-					if ( change.item.key === "stat" )
-					{
+				if ( player_affected.team.characters[ j ].id === change.character.id ) {
+					if ( change.item.key === "stat" ) {
 						player_affected.team.characters[ j ].stats[ change.item.value ] += parseInt( change.change );
 						log.status( player_user.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', dealing ' + change.change + ' damage points', 'BATTLE' );
-					}
-					else if ( change.item.key === "status" )
-					{
+					} else if ( change.item.key === "status" ) {
 						if ( change.change === "+" )
 							log.status( player_user.name + ' ordered ' + d.skill.caller.name + ' to use ' + d.skill.name + ' against ' + player_affected.team.characters[ j ].name + ', ' + change.item.value + 'ing him', 'BATTLE' );
 						else
@@ -371,19 +341,16 @@ socket.on( Constants.ROUND_RESULTS_EVENT, function ( decisions )
 
 } );
 
-socket.on( Constants.DECISIONS_PHASE_START_EVENT, function ()
-{
+socket.on( Constants.DECISIONS_PHASE_START_EVENT, function () {
 	decision_phase();
 } );
 
-socket.on( Constants.WIN_EVENT, function ()
-{
+socket.on( Constants.WIN_EVENT, function () {
 	log.success( 'YOU WIN', 'GZ' );
 	process.exit( 0 );
 } );
 
-socket.on( Constants.LOSE_EVENT, function ()
-{
+socket.on( Constants.LOSE_EVENT, function () {
 	log.error( 'Y0U L0S3', 'N00B' );
 	process.exit( 0 );
 } );
